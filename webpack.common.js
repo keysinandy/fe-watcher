@@ -4,11 +4,13 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
 
-  entry: path.resolve(__dirname, 'src/index.js'),
-
+  entry: {
+    index: path.resolve(__dirname, 'src/index.js'),
+    test: path.resolve(__dirname, 'sdk/test/test.js')
+  },
   output: {
     path: path.resolve(__dirname, 'build'),
-    filename: '[name].bundle.[hash:16].js'
+    filename: '[name].bundle.[hash:5].js',
   },
 
   module: {
@@ -68,6 +70,7 @@ module.exports = {
           enforce: true,
         }
       }
-    }
+    },
+
   }
 };

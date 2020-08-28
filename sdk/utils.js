@@ -10,10 +10,6 @@ const getRandomKey = (time = 1) => {
   return randomStr
 }
 
-const extend = () => {
-
-}
-
 /**
  *
  * @param method  请求类型(大写)  GET/POST
@@ -23,19 +19,23 @@ const extend = () => {
  * @param failCallback   失败回调方法
  */
 const request = (method, url, param, successCallback, failCallback) => {
-  // eslint-disable-next-line no-undef
-  let xmlHttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
-  xmlHttp.open(method, url, true);
-  xmlHttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-  xmlHttp.onreadystatechange = function () {
-    if (xmlHttp.readyState == 4 && xmlHttp.status >= 200 && xmlHttp.status < 300) {
-      let res = JSON.parse(xmlHttp.responseText);
-      typeof successCallback == 'function' && successCallback(res);
-    } else {
-      typeof failCallback == 'function' && failCallback();
-    }
-  };
-  xmlHttp.send("data=" + JSON.stringify(param));
+  try {
+    // eslint-disable-next-line no-undef
+    let xmlHttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');
+    xmlHttp.open(method, url, true);
+    xmlHttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xmlHttp.onreadystatechange = function () {
+      if (xmlHttp.readyState == 4 && xmlHttp.status >= 200 && xmlHttp.status < 300) {
+        let res = JSON.parse(xmlHttp.responseText);
+        typeof successCallback == 'function' && successCallback(res);
+      } else {
+        typeof failCallback == 'function' && failCallback();
+      }
+    };
+    xmlHttp.send("data=" + JSON.stringify(param));
+  } catch (error) {
+    console.warn(error)
+  }
 }
 
 export {

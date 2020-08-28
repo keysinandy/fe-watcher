@@ -1,6 +1,4 @@
-import { getRandomKey, getDeviceInfo, request, config } from './internal'
-
-const JS_ERROR = 10;
+import { getRandomKey, getDeviceInfo, request, config, JSError, RejError, ResourceError } from './internal'
 
 // 基本信息
 function BaseMonitorInfo () {
@@ -25,7 +23,7 @@ function BaseMonitorInfo () {
   this.city = "";  // 用户所在城市
   // 用户自定义信息， 由开发者主动传入， 便于对线上进行准确定位
   this.userId = "";
-
+  this.debug = false;
   this.errorStack = [];
   this.setUser = (id) => {
     this.userId = id
@@ -41,24 +39,24 @@ function BaseMonitorInfo () {
   // 设置一个定时器，定时上报错误
   this.start = () => {
     setInterval(() => {
+      if (this.errorStack.length <= 0) {
+        return
+      }
       let stack = this.errorStack.slice()
       this.errorStack = []
       request('get', config.remoteUrl, stack)
     }, 2000)
   }
+
+  this.log = (...msg) => {
+    if (this.debug) {
+      console.log(...msg)
+    }
+  }
 }
 
 // 创建他的实例
 const monitorInstance = new BaseMonitorInfo()
-
-// JS错误日志
-function JSError (errorMsg, errorStack) {
-  this.uploadType = JS_ERROR;
-  this.errorMessage = encodeURIComponent(errorMsg);
-  this.errorStack = errorStack;
-  this.timestamp = new Date().getTime()
-  this.currentUrl = window.location.href
-}
 
 /**
  * 初始化方法，传入projectId
@@ -69,31 +67,76 @@ function JSError (errorMsg, errorStack) {
 export const init = (projectId, options) => {
   monitorInstance.setProjectId(projectId)
   monitorInstance.start()
+  if (options.debug) {
+    monitorInstance.debug = true
+  }
   // 记录js错误
   recordJavaScriptError()
 }
 
 /**
- * 页面JS错误监控
+ * 页面错误监控
  */
 const recordJavaScriptError = () => {
-  // 重写 onerror 进行jsError的监听
-  window.onerror = function (errorMsg, url, lineNumber, columnNumber, errorObj) {
-    let errorStack = errorObj ? errorObj.stack : null;
-    siftAndMakeUpMessage(errorMsg, url, lineNumber, columnNumber, errorStack);
-  };
-
-  function siftAndMakeUpMessage (origin_errorMsg, origin_url, origin_lineNumber, origin_columnNumber, origin_errorObj) {
-    let errorMsg = origin_errorMsg ? origin_errorMsg : '';
-    let errorObj = origin_errorObj ? origin_errorObj : '';
-    let errorType = "";
-    if (errorMsg) {
-      let errorStackStr = JSON.stringify(errorObj)
-      errorType = errorStackStr.split(": ")[0].replace('"', "");
+  // 对error添加监听
+  addEventListener('error', (e) => {
+    let errorObj = e.error
+    let errorStack = errorObj ? errorObj.stack : null
+    let errorMsg = e.message
+    let typeName = e.target.localName;
+    let sourceUrl = "";
+    if (!typeName) {
+      pushJSError(errorMsg, errorStack);
+    } else {
+      switch (typeName) {
+      case 'href':
+        sourceUrl = e.target.href
+        break;
+      case 'script':
+        sourceUrl = e.target.src
+        break;
+      case 'img':
+        sourceUrl = e.target.src
+        break;
+      default:
+        break;
+      }
+      // TODO: css background-img url 无法收集
+      pushSourceError(typeName, sourceUrl)
     }
-    let jsError = new JSError(errorType + ": " + errorMsg, errorObj);
-    monitorInstance.pushStack(jsError)
+  }, true)
+
+  addEventListener('unhandledrejection', (e) => {
+    pushRejectError(e.reason);
+  }, true)
+
+
+}
+
+const pushJSError = (origin_errorMsg, origin_errorObj) => {
+  let errorMsg = origin_errorMsg ? origin_errorMsg : '';
+  let errorObj = origin_errorObj ? origin_errorObj : '';
+  let errorType = "";
+  if (errorMsg) {
+    let errorStackStr = JSON.stringify(errorObj)
+    errorType = errorStackStr.split(": ")[0].replace('"', "");
   }
+  let jsError = new JSError(errorType + ": " + errorMsg, errorObj);
+  monitorInstance.log(jsError)
+  monitorInstance.pushStack(jsError)
+}
+
+const pushRejectError = (origin_errorMsg) => {
+  let errorMsg = origin_errorMsg ? origin_errorMsg : '';
+  let rejError = new RejError(errorMsg);
+  monitorInstance.log(rejError)
+  monitorInstance.pushStack(rejError)
+}
+
+const pushSourceError = (resourceType, resourceUrl) => {
+  let resourceError = new ResourceError(resourceType, resourceUrl);
+  monitorInstance.log(resourceError)
+  monitorInstance.pushStack(resourceError)
 }
 
 /**
