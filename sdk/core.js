@@ -5,7 +5,7 @@ function BaseMonitorInfo () {
   // this.happenTime = new Date().getTime(); // 日志发生时间
   this.projectId = ''    // 用于区分应用的唯一标识（一个项目对应一个）
   // this.simpleUrl =  window.location.href.split('?')[0].replace('#', ''); // 页面的url
-  this.visitorKey = getRandomKey()  // 每一个页面对应一个值，当用户登陆后可覆盖这个值
+  this.visitorKey = getRandomKey(3)  // 每一个页面对应一个值，当用户登陆后可覆盖这个值
 
   // 获取设备信息
   let deviceInfo = getDeviceInfo()
@@ -112,6 +112,14 @@ const recordJavaScriptError = () => {
 
 
 }
+const enhanceError = (obj) => {
+  obj.timestamp = new Date().getTime()
+  obj.currentUrl = window.location.href
+  obj.projectId = monitorInstance.projectId
+  obj.visitorKey = monitorInstance.visitorKey
+  obj.userId = monitorInstance.userId
+  return obj
+}
 
 const pushJSError = (origin_errorMsg, origin_errorObj) => {
   let errorMsg = origin_errorMsg ? origin_errorMsg : '';
@@ -121,20 +129,20 @@ const pushJSError = (origin_errorMsg, origin_errorObj) => {
     let errorStackStr = JSON.stringify(errorObj)
     errorType = errorStackStr.split(": ")[0].replace('"', "");
   }
-  let jsError = new JSError(errorType + ": " + errorMsg, errorObj);
+  let jsError = enhanceError(new JSError(errorType + ": " + errorMsg, errorObj))
   monitorInstance.log(jsError)
   monitorInstance.pushStack(jsError)
 }
 
 const pushRejectError = (origin_errorMsg) => {
   let errorMsg = origin_errorMsg ? origin_errorMsg : '';
-  let rejError = new RejError(errorMsg);
+  let rejError = enhanceError(new RejError(errorMsg));
   monitorInstance.log(rejError)
   monitorInstance.pushStack(rejError)
 }
 
 const pushSourceError = (resourceType, resourceUrl) => {
-  let resourceError = new ResourceError(resourceType, resourceUrl);
+  let resourceError = enhanceError(new ResourceError(resourceType, resourceUrl))
   monitorInstance.log(resourceError)
   monitorInstance.pushStack(resourceError)
 }
