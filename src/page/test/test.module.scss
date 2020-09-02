@@ -1,0 +1,21 @@
+p {
+  text-align: center;
+  margin-top: 50px;
+}
+
+ul {
+  width: 80%;
+  margin-left: 10%;
+  margin-top: 50px;
+  list-style: none;
+  display: flex;
+  justify-content: space-around;
+  li {
+    margin-top: 20px;
+    border: 2px #91d5ff solid;
+    display: inline-block;
+    padding:5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+}

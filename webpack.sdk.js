@@ -6,7 +6,7 @@ module.exports = {
     sdk: path.resolve(__dirname, 'sdk/index.js'),
   },
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, 'public'),
     filename: '[name].min.js',
   },
 
